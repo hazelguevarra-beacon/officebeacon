@@ -16,7 +16,8 @@
   .profile-details { flex: 1; }
   .profile-details h3 { margin: 0; color: #004aad; }
   .skills, .tools { margin: 8px 0; }
-  .actions button { margin-right: 10px; }
+  .actions a { color: #004aad; text-decoration: none; margin-right: 10px; }
+  .actions a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -34,7 +35,8 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // same URL for GET and POST
+const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // e.g., https://script.google.com/macros/s/AKfyc.../exec
+
 let profiles = [];
 
 function fetchProfiles() {
@@ -78,6 +80,7 @@ function displayProfiles(list, query = "") {
       <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
       <div class="profile-details">
         <h3>${p["Name"] || "Unnamed"}</h3>
+        <p><b>Employee ID:</b> ${p["Employee ID"] || ""}</p>
         <p><b>Role:</b> ${p["Role"] || ""}</p>
         <p><b>Status:</b> ${p["Status"] || ""}</p>
         <p><b>Skills:</b> ${p["Skills"] || ""}</p>
@@ -85,8 +88,8 @@ function displayProfiles(list, query = "") {
         <p><b>Experience:</b> ${p["Experience"] || ""}</p>
         <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
         <div class="actions">
-          ${p["Profile Video"] ? `<button onclick="logDownload('${p["Name"]}','${p["Profile Video"]}')">Download Intro Video</button>` : ""}
-          ${p["Write-up"] ? `<button onclick="logDownload('${p["Name"]}','${p["Write-up"]}')">Download Write-up</button>` : ""}
+          ${p["Profile Video"] ? `<a href="#" onclick="openAfterLog('${p["Name"]}','${p["Profile Video"]}')">View Intro Video</a>` : ""}
+          ${p["Write-up"] ? `<a href="#" onclick="openAfterLog('${p["Name"]}','${p["Write-up"]}')">View Write-up</a>` : ""}
         </div>
       </div>
     `;
@@ -94,10 +97,12 @@ function displayProfiles(list, query = "") {
   });
 }
 
-function logDownload(name, url) {
+function openAfterLog(name, url) {
   const email = prompt("Enter your email address:");
   const account = prompt("Enter your account name:");
-  const profiling = confirm("Is this for profiling? Click OK for Yes, Cancel for No.") ? "Yes" : "No";
+  const profiling = confirm("Is this for Profiling? Click OK for Yes, Cancel for No.")
+    ? "Yes"
+    : "No";
 
   if (!email || !account) {
     alert("Both email and account are required.");
@@ -111,19 +116,20 @@ function logDownload(name, url) {
   })
   .then(r => r.json())
   .then(res => {
+    console.log(res);
     if (res.success) {
       window.open(url, "_blank");
-      alert("Download logged successfully!");
     } else {
-      alert("Error logging download: " + res.error);
+      alert("Error logging access: " + (res.error || ""));
     }
   })
   .catch(err => {
     console.error(err);
-    alert("Error logging download.");
+    alert("Error logging access.");
   });
 }
 
+// Load profiles on page start
 fetchProfiles();
 </script>
 </body>
