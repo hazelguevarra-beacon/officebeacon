@@ -1,114 +1,241 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Team Profiles</title>
-<style>
-body { font-family: Arial; margin: 20px; }
-input { padding: 10px; width: 250px; margin-right: 10px; }
-button { padding: 10px 15px; margin-right:5px; cursor:pointer; }
-.profile-card { border:1px solid #ccc; padding:15px; margin:15px 0; border-radius:8px; display:flex; gap:15px; flex-wrap:wrap; }
-.profile-card img { width:100px; height:100px; object-fit:cover; border-radius:8px; }
-.profile-info { flex:1; min-width:250px; }
-a { color:blue; text-decoration:underline; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Talent Directory</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: #f9fafc;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+
+    header {
+      background: linear-gradient(90deg, #004aad, #f5c518);
+      color: white;
+      text-align: center;
+      padding: 20px;
+      font-size: 1.5em;
+      font-weight: bold;
+    }
+
+    .container {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .search-bar {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    input {
+      padding: 10px;
+      width: 60%;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1em;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      background-color: #004aad;
+      color: white;
+      font-size: 1em;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background-color: #003580;
+    }
+
+    .profile {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      margin: 10px 0;
+      background: #fdfdfd;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+
+    .profile img {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 2px solid #004aad;
+    }
+
+    .profile-details {
+      flex: 1;
+      padding-left: 15px;
+    }
+
+    .profile-details h3 {
+      margin: 0;
+      color: #004aad;
+    }
+
+    .profile-details p {
+      margin: 4px 0;
+      line-height: 1.4;
+    }
+
+    .profile-details a {
+      color: #004aad;
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .profile-details a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
 <body>
-<h2>Team Profiles</h2>
-<input type="text" id="searchInput" placeholder="Search Name or Skills">
-<button onclick="searchProfiles()">Search</button>
-<button onclick="showAll()">Show All</button>
-<div id="profileList"></div>
 
-<script>
-// ================================
-// Replace these URLs with your deployed Apps Script URLs
-// ================================
-const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec";    // Google Sheet JSON web app
-const EMAIL_API_URL = "https://script.google.com/macros/s/AKfycbybu1QSuq6w_cQNH4BVroDSxG1Ty6LGefcajBKpU3y3gk_ai-EAHOBDTjcDdJJGsxWQiQ/exec";  // Email sending web app
+  <header>💼 Talent Directory Portal</header>
 
-let profiles = [];
+  <div class="container">
+    <div class="search-bar">
+      <input type="text" id="searchInput" placeholder="Search by name, skill, or tool...">
+      <button onclick="searchProfiles()">Search</button>
+      <button onclick="showAll()">Show All Profiles</button>
+    </div>
 
-// Fetch all profiles from your sheet
-fetch(API_URL)
-  .then(res => res.json())
-  .then(data => { 
-    profiles = data.data; 
-    showAll(); 
-  })
-  .catch(err => console.error("Error fetching data:", err));
+    <div id="profiles"></div>
+  </div>
 
-// ================================
-// Search & Show All
-// ================================
-function searchProfiles() {
-  const query = document.getElementById("searchInput").value.toLowerCase();
-  const filtered = profiles.filter(p =>
-    (p.Name && p.Name.toLowerCase().includes(query)) ||
-    (p.Skills && p.Skills.toLowerCase().includes(query))
-  );
-  renderProfiles(filtered);
-}
+  <script>
+    // === CONFIGURATION ===
+    const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // <-- Google Apps Script for Sheet data
+    const EMAIL_API_URL = "https://script.google.com/macros/s/AKfycbybu1QSuq6w_cQNH4BVroDSxG1Ty6LGefcajBKpU3y3gk_ai-EAHOBDTjcDdJJGsxWQiQ/exec"; // <-- Google Apps Script for Email log
 
-function showAll() {
-  renderProfiles(profiles);
-}
+    let allProfiles = [];
 
-// ================================
-// Render profile cards
-// ================================
-function renderProfiles(list) {
-  const container = document.getElementById("profileList");
-  container.innerHTML = "";
-  if(list.length===0) { container.innerHTML="<p>No profiles found.</p>"; return; }
+    // === FETCH DATA ===
+    async function fetchProfiles() {
+      const res = await fetch(API_URL);
+      const data = await res.json();
+      allProfiles = data.data || [];
+    }
 
-  list.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "profile-card";
-    div.innerHTML = `
-      <img src="${p['Photo URL']}" alt="${p.Name}">
-      <div class="profile-info">
-        <p><strong>Employee ID:</strong> ${p['Employee ID']}</p>
-        <p><strong>Name:</strong> ${p.Name}</p>
-        <p><strong>Role:</strong> ${p.Role}</p>
-        <p><strong>Status:</strong> ${p.Status}</p>
-        <p><strong>Skills:</strong> ${p.Skills}</p>
-        <p><strong>Tools:</strong> ${p.Tools}</p>
-        <p><strong>Experience:</strong> ${p.Experience}</p>
-        <p><strong>Courses:</strong> <a href="${p.Courses}" target="_blank">View Course</a></p>
-        <p><strong>Profile Video:</strong> <a href="${p['Profile Video']}" target="_blank">Watch</a></p>
-        <p><strong>Write-up:</strong> <button onclick="downloadWriteup('${p['Write-up']}', '${p.Name}')">Download</button></p>
-      </div>
-    `;
-    container.appendChild(div);
-  });
-}
+    // === SEARCH FUNCTION ===
+    async function searchProfiles() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      if (!query) {
+        alert("Please enter a name, skill, or tool.");
+        return;
+      }
 
-// ================================
-// Download write-up + send email
-// ================================
-function downloadWriteup(writeupLink, name) {
-  const email = prompt("Enter your email address:");
-  if (!email) return alert("Email required.");
-  
-  const account = prompt("Enter your account:");
-  if (!account) return alert("Account required.");
+      const results = allProfiles.filter(p =>
+        (p["Name"] && p["Name"].toLowerCase().includes(query)) ||
+        (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
+        (p["Tools"] && p["Tools"].toLowerCase().includes(query))
+      );
 
-  // Open the write-up in a new tab
-  window.open(writeupLink, "_blank");
+      displayProfiles(results.length ? results : []);
+    }
 
-  // Send email notification
-  fetch(EMAIL_API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, account })
-  })
-  .then(() => alert("Download logged and email sent."))
-  .catch(err => {
-    console.error(err); 
-    alert("Error sending email.");
-  });
-}
-</script>
+    // === SHOW ALL ===
+    function showAll() {
+      displayProfiles(allProfiles);
+    }
+
+    // === DISPLAY PROFILES ===
+    function displayProfiles(profiles) {
+      const container = document.getElementById("profiles");
+      container.innerHTML = "";
+
+      if (!profiles.length) {
+        container.innerHTML = "<p>No matching profiles found.</p>";
+        return;
+      }
+
+      profiles.forEach(p => {
+        const photo = p["Photo URL"] || "https://via.placeholder.com/120";
+        const name = p["Name"] || "N/A";
+        const role = p["Role"] || "";
+        const status = p["Status"] || "";
+        const skills = p["Skills"] || "";
+        const tools = p["Tools"] || "";
+        const exp = p["Experience"] || "";
+        const courses = p["Courses"] ? `<a href="${p["Courses"]}" target="_blank">View Courses</a>` : "N/A";
+        const video = p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank">Watch Intro</a>` : "N/A";
+        const writeup = p["Write-up"] ? `<button onclick="downloadWriteup('${name}', '${p["Write-up"]}')">Download Write-up</button>` : "N/A";
+
+        container.innerHTML += `
+          <div class="profile">
+            <img src="${photo}" alt="${name}">
+            <div class="profile-details">
+              <h3>${name}</h3>
+              <p><strong>Role:</strong> ${role}</p>
+              <p><strong>Status:</strong> ${status}</p>
+              <p><strong>Skills:</strong> ${skills}</p>
+              <p><strong>Tools:</strong> ${tools}</p>
+              <p><strong>Experience:</strong> ${exp}</p>
+              <p><strong>Courses:</strong> ${courses}</p>
+              <p><strong>Profile Video:</strong> ${video}</p>
+              <p>${writeup}</p>
+            </div>
+          </div>
+        `;
+      });
+    }
+
+    // === DOWNLOAD WRITE-UP + EMAIL LOG ===
+    function downloadWriteup(name, fileUrl) {
+      const email = prompt("Enter your email address:");
+      const account = prompt("Enter your account name:");
+
+      if (!email || !account) {
+        alert("Both fields are required.");
+        return;
+      }
+
+      sendEmailLog(name, email, account);
+      window.open(fileUrl, "_blank");
+    }
+
+    // === SEND EMAIL LOG ===
+    function sendEmailLog(name, email, account) {
+      fetch(EMAIL_API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, account })
+      })
+      .then(res => res.json())
+      .then(result => {
+        if (result.success) {
+          console.log("Email log sent successfully.");
+        } else {
+          console.error("Email send error:", result.error);
+          alert("Error sending email: " + result.error);
+        }
+      })
+      .catch(err => {
+        console.error("Fetch error:", err);
+        alert("Error sending email.");
+      });
+    }
+
+    // Load all profiles on start
+    fetchProfiles();
+  </script>
 </body>
 </html>
