@@ -8,7 +8,7 @@
   body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
   header { background: #004aad; color: #fff; padding: 20px; text-align: center; }
   .container { max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+  input, select { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
   button { padding: 10px 16px; background: #004aad; color: white; border: none; border-radius: 8px; cursor: pointer; }
   button:hover { background: #003580; }
   .profile { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; gap: 20px; align-items: center; }
@@ -35,7 +35,6 @@
 
 <script>
 const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // same URL for GET and POST
-
 let profiles = [];
 
 function fetchProfiles() {
@@ -86,8 +85,8 @@ function displayProfiles(list, query = "") {
         <p><b>Experience:</b> ${p["Experience"] || ""}</p>
         <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
         <div class="actions">
-          ${p["Profile Video"] ? `<button onclick="logAndDownload('${p["Name"]}','${p["Profile Video"]}')">Download Intro Video</button>` : ""}
-          ${p["Write-up"] ? `<button onclick="logAndDownload('${p["Name"]}','${p["Write-up"]}')">Download Write-up</button>` : ""}
+          ${p["Profile Video"] ? `<button onclick="logDownload('${p["Name"]}','${p["Profile Video"]}')">Download Intro Video</button>` : ""}
+          ${p["Write-up"] ? `<button onclick="logDownload('${p["Name"]}','${p["Write-up"]}')">Download Write-up</button>` : ""}
         </div>
       </div>
     `;
@@ -95,13 +94,13 @@ function displayProfiles(list, query = "") {
   });
 }
 
-function logAndDownload(name, url) {
+function logDownload(name, url) {
   const email = prompt("Enter your email address:");
   const account = prompt("Enter your account name:");
   const profiling = confirm("Is this for profiling? Click OK for Yes, Cancel for No.") ? "Yes" : "No";
 
   if (!email || !account) {
-    alert("Email and account are required.");
+    alert("Both email and account are required.");
     return;
   }
 
@@ -114,14 +113,14 @@ function logAndDownload(name, url) {
   .then(res => {
     if (res.success) {
       window.open(url, "_blank");
-      alert("Logged successfully.");
+      alert("Download logged successfully!");
     } else {
-      alert("Error logging action: " + res.error);
+      alert("Error logging download: " + res.error);
     }
   })
   .catch(err => {
     console.error(err);
-    alert("Error logging action.");
+    alert("Error logging download.");
   });
 }
 
