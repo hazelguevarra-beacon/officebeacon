@@ -8,15 +8,16 @@
   body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
   header { background: #004aad; color: #fff; padding: 20px; text-align: center; }
   .container { max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-right:10px; }
+  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
   button { padding: 10px 16px; background: #004aad; color: white; border: none; border-radius: 8px; cursor: pointer; }
   button:hover { background: #003580; }
   .profile { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; gap: 20px; align-items: center; }
   .profile img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
   .profile-details { flex: 1; }
   .profile-details h3 { margin: 0; color: #004aad; }
-  .actions button { margin-right: 10px; }
-  .actions a { text-decoration: none; }
+  .skills, .tools { margin: 8px 0; }
+  .actions button, .actions a { margin-right: 10px; }
+  .disabled { background: #ccc; color: #666; cursor: not-allowed; text-decoration: none; padding: 10px 16px; border-radius: 8px; }
 </style>
 </head>
 <body>
@@ -34,52 +35,59 @@
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // Replace with your Apps Script doGet URL
-
+const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // replace with your Apps Script URL
 let profiles = [];
 
-// Fetch all profiles
 function fetchProfiles() {
   fetch(API_URL)
     .then(res => res.json())
     .then(data => {
-      profiles = data.data || [];
+      profiles = data.data;
       showAll();
     })
     .catch(err => {
-      console.error("Fetch error:", err);
+      console.error(err);
       document.getElementById("results").innerText = "Error loading profiles.";
     });
 }
 
-// Search function
 function searchProfiles() {
   const query = document.getElementById("searchInput").value.toLowerCase();
   const filtered = profiles.filter(p =>
-    (p["Name"] || "").toLowerCase().includes(query) ||
-    (p["Skills"] || "").toLowerCase().includes(query) ||
-    (p["Tools"] || "").toLowerCase().includes(query)
+    p["Name"].toLowerCase().includes(query) ||
+    (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
+    (p["Tools"] && p["Tools"].toLowerCase().includes(query))
   );
   displayProfiles(filtered.length ? filtered : [], query);
 }
 
-// Show all profiles
 function showAll() {
   displayProfiles(profiles);
 }
 
-// Display profiles
 function displayProfiles(list, query = "") {
   const results = document.getElementById("results");
   results.innerHTML = "";
   if (!list.length) {
-    results.innerHTML = `<p>${query ? 'No match found for "'+query+'".' : "No profiles found."}</p>`;
+    results.innerHTML = `<p>No match found for "${query}".</p>`;
     return;
   }
-
   list.forEach(p => {
     const div = document.createElement("div");
     div.className = "profile";
+
+    // Determine Write-Up link
+    let writeUpHtml = "";
+    if (p["Status"] === "Available" && p["Write-up"]) {
+      writeUpHtml = `<a href="https://docs.google.com/forms/d/e/1FAIpQLSc86QPxHxWImOEy0vR7i7WJyNsYYs-8Wk5khc3Th_YsxSHXZw/viewform" target="_blank">
+                        <button>Request Write-Up</button>
+                     </a>`;
+    } else {
+      writeUpHtml = `<a href="mailto:OBPHTraining@officebeacon.com,Hazel.guevarra@officebeacon.com">
+                        <span class="disabled">Request Write-Up</span>
+                     </a>`;
+    }
+
     div.innerHTML = `
       <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
       <div class="profile-details">
@@ -89,21 +97,10 @@ function displayProfiles(list, query = "") {
         <p><b>Skills:</b> ${p["Skills"] || ""}</p>
         <p><b>Tools:</b> ${p["Tools"] || ""}</p>
         <p><b>Experience:</b> ${p["Experience"] || ""}</p>
-        <p><a href="${p["Courses"] || '#'}" target="_blank">Courses</a></p>
-
+        <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
         <div class="actions">
-          <!-- Profile Video -->
-          ${p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank"><button>View Intro Video</button></a>` : ""}
-
-          <!-- Write-Up -->
-          ${p["Status"] === "Available"
-            ? `<a href="https://docs.google.com/forms/d/e/1FAIpQLSc86QPxHxWImOEy0vR7i7WJyNsYYs-8Wk5khc3Th_YsxSHXZw/viewform" target="_blank">
-                 <button>Request Write-Up</button>
-               </a>`
-            : `<a href="mailto:OBPHTraining@officebeacon.com,Hazel.guevarra@officebeacon.com">
-                 <button style="background:#ccc; cursor:pointer;">Request Write-Up</button>
-               </a>`
-          }
+          ${p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank"><button>View Profile Video</button></a>` : ""}
+          ${writeUpHtml}
         </div>
       </div>
     `;
@@ -111,8 +108,8 @@ function displayProfiles(list, query = "") {
   });
 }
 
-// Load profiles when page loads
 fetchProfiles();
 </script>
 </body>
 </html>
+
