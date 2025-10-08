@@ -5,125 +5,112 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Talent Directory</title>
 <style>
-  body { font-family: Arial, sans-serif; padding: 20px; }
-  .profile { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
-  .hidden { display: none; }
-  button { margin-top: 10px; }
+  body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+  header { background: #004aad; color: #fff; padding: 20px; text-align: center; }
+  .container { max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; margin-right:10px; }
+  button { padding: 10px 16px; background: #004aad; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #003580; }
+  .profile { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; gap: 20px; align-items: center; }
+  .profile img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
+  .profile-details { flex: 1; }
+  .profile-details h3 { margin: 0; color: #004aad; }
+  .actions button { margin-right: 10px; }
+  .actions a { text-decoration: none; }
 </style>
 </head>
 <body>
-<h1>Talent Directory</h1>
+<header>
+  <h1>Talent Directory</h1>
+</header>
 
-<input type="text" id="searchInput" placeholder="Search by name, skills, or tools">
-<button id="viewAll">View All Profiles</button>
+<div class="container">
+  <h2>Search Profiles</h2>
+  <input id="searchInput" placeholder="Enter name, skill, or tool...">
+  <button onclick="searchProfiles()">Search</button>
+  <button onclick="showAll()">View All Profiles</button>
 
-<div id="profilesContainer"></div>
-
-<!-- Form popup -->
-<div id="popup" class="hidden">
-  <h3>Enter your details before viewing</h3>
-  <input id="email" placeholder="Your Email"><br>
-  <input id="account" placeholder="Account"><br>
-  <input id="profiling" placeholder="Profiling (e.g., OBPH, UA, etc.)"><br>
-  <button id="submitInfo">Submit</button>
+  <div id="results"></div>
 </div>
 
 <script>
-const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // the GET URL returning your profiles
-const LOG_API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // your deployed Apps Script Web App
+// Replace with your deployed Apps Script doGet Web App URL
+const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec";
 
-let selectedProfile = null;
 let profiles = [];
 
-// Fetch and display all profiles
-async function loadProfiles() {
-  try {
-    const res = await fetch(SHEET_API_URL);
-    profiles = await res.json();
-    showProfiles(profiles);
-  } catch (err) {
-    console.error("Error loading profiles:", err);
-  }
+// Fetch all profiles on page load
+function fetchProfiles() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      profiles = data.data;
+      showAll();
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("results").innerText = "Error loading profiles.";
+    });
 }
 
-function showProfiles(data) {
-  const container = document.getElementById("profilesContainer");
-  container.innerHTML = "";
-  if (!data.length) return (container.innerHTML = "<p>No profiles found.</p>");
-  data.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "profile";
-    div.innerHTML = `
-      <img src="${p.Photo}" alt="${p.Name}" width="100"><br>
-      <strong>${p.Name}</strong><br>
-      Role: ${p.Role}<br>
-      Status: ${p.Status}<br>
-      Skills: ${p.Skills}<br>
-      Tools: ${p.Tools}<br>
-      Experience: ${p.Experience}<br>
-      Courses: ${p.Courses}<br>
-      <button onclick="openPopup('${p.Name}','${p.Video}','${p.Writeup}')">View Links</button>
-    `;
-    container.appendChild(div);
-  });
+function searchProfiles() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = profiles.filter(p =>
+    p["Name"].toLowerCase().includes(query) ||
+    (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
+    (p["Tools"] && p["Tools"].toLowerCase().includes(query))
+  );
+  displayProfiles(filtered.length ? filtered : [], query);
 }
 
-function openPopup(name, video, writeup) {
-  selectedProfile = { name, video, writeup };
-  document.getElementById("popup").classList.remove("hidden");
+function showAll() {
+  displayProfiles(profiles);
 }
 
-document.getElementById("submitInfo").addEventListener("click", async () => {
-  const email = document.getElementById("email").value.trim();
-  const account = document.getElementById("account").value.trim();
-  const profiling = document.getElementById("profiling").value.trim();
-
-  if (!email || !account || !profiling) {
-    alert("Please fill out all fields.");
+function displayProfiles(list, query = "") {
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+  if (!list.length) {
+    results.innerHTML = `<p>No match found for "${query}".</p>`;
     return;
   }
 
-  try {
-    const res = await fetch(LOG_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name: selectedProfile.name,
-        email,
-        account,
-        profiling
-      })
-    });
-    const data = await res.json();
+  list.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "profile";
+    div.innerHTML = `
+      <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
+      <div class="profile-details">
+        <h3>${p["Name"] || "Unnamed"}</h3>
+        <p><b>Role:</b> ${p["Role"] || ""}</p>
+        <p><b>Status:</b> ${p["Status"] || ""}</p>
+        <p><b>Skills:</b> ${p["Skills"] || ""}</p>
+        <p><b>Tools:</b> ${p["Tools"] || ""}</p>
+        <p><b>Experience:</b> ${p["Experience"] || ""}</p>
+        <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
 
-    if (!data.success) throw new Error(data.error);
+        <div class="actions">
+          <!-- Profile Video -->
+          ${p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank"><button>View Intro Video</button></a>` : ""}
 
-    document.getElementById("popup").classList.add("hidden");
+          <!-- Write-Up -->
+          ${p["Status"] === "Available"
+            ? `<a href="https://docs.google.com/forms/d/e/1FAIpQLSc86QPxHxWImOEy0vR7i7WJyNsYYs-8Wk5khc3Th_YsxSHXZw/viewform" target="_blank">
+                 <button>Request Write-Up</button>
+               </a>`
+            : `<a href="mailto:OBPHTraining@officebeacon.com,Hazel.guevarra@officebeacon.com">
+                 <button style="background:#ccc; cursor:pointer;">Request Write-Up</button>
+               </a>`
+          }
+        </div>
+      </div>
+    `;
+    results.appendChild(div);
+  });
+}
 
-    alert("Access logged. You can now view the profile links.");
-
-    // Show links
-    window.open(selectedProfile.video, "_blank");
-    window.open(selectedProfile.writeup, "_blank");
-  } catch (err) {
-    console.error(err);
-    alert("Error logging access.");
-  }
-});
-
-document.getElementById("searchInput").addEventListener("input", e => {
-  const query = e.target.value.toLowerCase();
-  const results = profiles.filter(p =>
-    [p.Name, p.Skills, p.Tools].some(field =>
-      field.toLowerCase().includes(query)
-    )
-  );
-  showProfiles(results);
-});
-
-document.getElementById("viewAll").addEventListener("click", () => showProfiles(profiles));
-
-loadProfiles();
+// Load profiles on page start
+fetchProfiles();
 </script>
 </body>
 </html>
