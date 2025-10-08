@@ -5,132 +5,125 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Talent Directory</title>
 <style>
-  body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
-  header { background: #004aad; color: #fff; padding: 20px; text-align: center; }
-  .container { max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
-  button { padding: 10px 16px; background: #004aad; color: white; border: none; border-radius: 8px; cursor: pointer; }
-  button:hover { background: #003580; }
-  .profile { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; gap: 20px; align-items: center; }
-  .profile img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
-  .profile-details { flex: 1; }
-  .profile-details h3 { margin: 0; color: #004aad; }
-  .skills, .tools { margin: 8px 0; }
-  .actions a { color: #004aad; text-decoration: none; margin-right: 10px; }
-  .actions a:hover { text-decoration: underline; }
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  .profile { border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; border-radius: 8px; }
+  .hidden { display: none; }
+  button { margin-top: 10px; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Talent Directory</h1>
-</header>
+<h1>Talent Directory</h1>
 
-<div class="container">
-  <h2>Search Profiles</h2>
-  <input id="searchInput" placeholder="Enter name, skill, or tool...">
-  <button onclick="searchProfiles()">Search</button>
-  <button onclick="showAll()">View All Profiles</button>
+<input type="text" id="searchInput" placeholder="Search by name, skills, or tools">
+<button id="viewAll">View All Profiles</button>
 
-  <div id="results"></div>
+<div id="profilesContainer"></div>
+
+<!-- Form popup -->
+<div id="popup" class="hidden">
+  <h3>Enter your details before viewing</h3>
+  <input id="email" placeholder="Your Email"><br>
+  <input id="account" placeholder="Account"><br>
+  <input id="profiling" placeholder="Profiling (e.g., OBPH, UA, etc.)"><br>
+  <button id="submitInfo">Submit</button>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // e.g., https://script.google.com/macros/s/AKfyc.../exec
+const SHEET_API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // the GET URL returning your profiles
+const LOG_API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // your deployed Apps Script Web App
 
+let selectedProfile = null;
 let profiles = [];
 
-function fetchProfiles() {
-  fetch(API_URL)
-    .then(res => res.json())
-    .then(data => {
-      profiles = data.data;
-      showAll();
-    })
-    .catch(err => {
-      console.error(err);
-      document.getElementById("results").innerText = "Error loading profiles.";
-    });
-}
-
-function searchProfiles() {
-  const query = document.getElementById("searchInput").value.toLowerCase();
-  const filtered = profiles.filter(p =>
-    p["Name"].toLowerCase().includes(query) ||
-    (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
-    (p["Tools"] && p["Tools"].toLowerCase().includes(query))
-  );
-  displayProfiles(filtered.length ? filtered : [], query);
-}
-
-function showAll() {
-  displayProfiles(profiles);
-}
-
-function displayProfiles(list, query = "") {
-  const results = document.getElementById("results");
-  results.innerHTML = "";
-  if (!list.length) {
-    results.innerHTML = `<p>No match found for "${query}".</p>`;
-    return;
+// Fetch and display all profiles
+async function loadProfiles() {
+  try {
+    const res = await fetch(SHEET_API_URL);
+    profiles = await res.json();
+    showProfiles(profiles);
+  } catch (err) {
+    console.error("Error loading profiles:", err);
   }
-  list.forEach(p => {
+}
+
+function showProfiles(data) {
+  const container = document.getElementById("profilesContainer");
+  container.innerHTML = "";
+  if (!data.length) return (container.innerHTML = "<p>No profiles found.</p>");
+  data.forEach(p => {
     const div = document.createElement("div");
     div.className = "profile";
     div.innerHTML = `
-      <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
-      <div class="profile-details">
-        <h3>${p["Name"] || "Unnamed"}</h3>
-        <p><b>Employee ID:</b> ${p["Employee ID"] || ""}</p>
-        <p><b>Role:</b> ${p["Role"] || ""}</p>
-        <p><b>Status:</b> ${p["Status"] || ""}</p>
-        <p><b>Skills:</b> ${p["Skills"] || ""}</p>
-        <p><b>Tools:</b> ${p["Tools"] || ""}</p>
-        <p><b>Experience:</b> ${p["Experience"] || ""}</p>
-        <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
-        <div class="actions">
-          ${p["Profile Video"] ? `<a href="#" onclick="openAfterLog('${p["Name"]}','${p["Profile Video"]}')">View Intro Video</a>` : ""}
-          ${p["Write-up"] ? `<a href="#" onclick="openAfterLog('${p["Name"]}','${p["Write-up"]}')">View Write-up</a>` : ""}
-        </div>
-      </div>
+      <img src="${p.Photo}" alt="${p.Name}" width="100"><br>
+      <strong>${p.Name}</strong><br>
+      Role: ${p.Role}<br>
+      Status: ${p.Status}<br>
+      Skills: ${p.Skills}<br>
+      Tools: ${p.Tools}<br>
+      Experience: ${p.Experience}<br>
+      Courses: ${p.Courses}<br>
+      <button onclick="openPopup('${p.Name}','${p.Video}','${p.Writeup}')">View Links</button>
     `;
-    results.appendChild(div);
+    container.appendChild(div);
   });
 }
 
-function openAfterLog(name, url) {
-  const email = prompt("Enter your email address:");
-  const account = prompt("Enter your account name:");
-  const profiling = confirm("Is this for Profiling? Click OK for Yes, Cancel for No.")
-    ? "Yes"
-    : "No";
+function openPopup(name, video, writeup) {
+  selectedProfile = { name, video, writeup };
+  document.getElementById("popup").classList.remove("hidden");
+}
 
-  if (!email || !account) {
-    alert("Both email and account are required.");
+document.getElementById("submitInfo").addEventListener("click", async () => {
+  const email = document.getElementById("email").value.trim();
+  const account = document.getElementById("account").value.trim();
+  const profiling = document.getElementById("profiling").value.trim();
+
+  if (!email || !account || !profiling) {
+    alert("Please fill out all fields.");
     return;
   }
 
-  fetch(API_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ name, email, account, profiling })
-  })
-  .then(r => r.json())
-  .then(res => {
-    console.log(res);
-    if (res.success) {
-      window.open(url, "_blank");
-    } else {
-      alert("Error logging access: " + (res.error || ""));
-    }
-  })
-  .catch(err => {
+  try {
+    const res = await fetch(LOG_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: selectedProfile.name,
+        email,
+        account,
+        profiling
+      })
+    });
+    const data = await res.json();
+
+    if (!data.success) throw new Error(data.error);
+
+    document.getElementById("popup").classList.add("hidden");
+
+    alert("Access logged. You can now view the profile links.");
+
+    // Show links
+    window.open(selectedProfile.video, "_blank");
+    window.open(selectedProfile.writeup, "_blank");
+  } catch (err) {
     console.error(err);
     alert("Error logging access.");
-  });
-}
+  }
+});
 
-// Load profiles on page start
-fetchProfiles();
+document.getElementById("searchInput").addEventListener("input", e => {
+  const query = e.target.value.toLowerCase();
+  const results = profiles.filter(p =>
+    [p.Name, p.Skills, p.Tools].some(field =>
+      field.toLowerCase().includes(query)
+    )
+  );
+  showProfiles(results);
+});
+
+document.getElementById("viewAll").addEventListener("click", () => showProfiles(profiles));
+
+loadProfiles();
 </script>
 </body>
 </html>
