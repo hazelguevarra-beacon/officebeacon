@@ -5,80 +5,42 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Talent Directory</title>
 <style>
-  /* Base */
-  body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
-  
-  /* Header */
-  header {
-    background-color: #002f6c; /* deep navy */
-    color: #fff;
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-  }
-  header img { height: 50px; border-radius: 8px; }
-  header h1 { margin: 0; font-size: 1.8em; font-weight: bold; }
-
-  /* Container */
-  .container {
-    max-width: 900px;
-    margin: 40px auto;
-    background: #fff;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-  }
-
-  /* Search */
-  input { width: 70%; padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1em; }
-  button { padding: 12px 18px; background: #ffc72c; color: #002f6c; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; transition: 0.3s; font-weight: bold; }
-  button:hover { background: #e6b300; }
-
-  /* Profiles */
-  .profile { border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-top: 20px; display: flex; gap: 20px; align-items: center; background: #f9fbff; }
-  .profile img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
-  .profile-details { flex: 1; }
-  .profile-details h3 { margin: 0; color: #002f6c; font-size: 1.3em; }
-  .skills, .tools { margin: 6px 0; color: #444; }
-  
-  /* Actions */
-  .actions button, .actions a {
-    margin-right: 10px;
-    font-size: 0.95em;
-    padding: 8px 14px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    transition: 0.3s;
-    font-weight: bold;
-  }
-  .actions button { background: #ffc72c; color: #002f6c; }
-  .actions button:hover { background: #e6b300; }
-  .actions a { text-decoration: none; }
-  .disabled { background: #ccc; color: #666; cursor: not-allowed; text-decoration: none; padding: 8px 14px; border-radius: 8px; }
-
+  body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f5f5f5; }
+  .header { background:#002f6c; color:white; padding:20px; display:flex; align-items:center; justify-content:center; gap:15px; }
+  .header img { height:50px; border-radius:8px; }
+  .header h1 { margin:0; font-size:1.8em; font-weight:bold; }
+  .container { max-width:900px; margin:40px auto; background:#fff; padding:30px; border-radius:12px; box-shadow:0 4px 16px rgba(0,0,0,0.1); }
+  .container h2 { color:#002f6c; }
+  input { width:70%; padding:12px; border:1px solid #ccc; border-radius:8px; margin-right:10px; }
+  button { padding:12px 18px; border:none; border-radius:8px; cursor:pointer; background:#ffc72c; color:#002f6c; font-weight:bold; transition:0.3s; }
+  button:hover { background:#e6b800; }
+  .profile { border:1px solid #ddd; padding:20px; border-radius:8px; margin-top:20px; display:flex; gap:20px; align-items:center; background:#fcfcfc; }
+  .profile img { width:100px; height:100px; border-radius:50%; object-fit:cover; }
+  .profile-details { flex:1; }
+  .profile-details h3 { margin:0; color:#002f6c; }
+  .skills, .tools { margin:6px 0; }
+  .actions { margin-top:10px; }
+  .actions a, .actions button { margin-right:10px; text-decoration:none; }
+  .disabled { color: #999; pointer-events:none; }
 </style>
 </head>
 <body>
-<header>
+
+<div class="header">
   <img src="https://i.imgur.com/d2BCvGL.png" alt="Office Beacon Logo">
   <h1>Talent Directory</h1>
-</header>
+</div>
 
 <div class="container">
   <h2>Search Profiles</h2>
   <input id="searchInput" placeholder="Enter name, skill, or tool...">
   <button onclick="searchProfiles()">Search</button>
   <button onclick="showAll()">View All Profiles</button>
-
   <div id="results"></div>
 </div>
 
 <script>
-const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // replace with your Apps Script URL
+const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // Replace with your Apps Script URL
 let profiles = [];
 
 function fetchProfiles() {
@@ -97,9 +59,9 @@ function fetchProfiles() {
 function searchProfiles() {
   const query = document.getElementById("searchInput").value.toLowerCase();
   const filtered = profiles.filter(p =>
-    p["Name"].toLowerCase().includes(query) ||
-    (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
-    (p["Tools"] && p["Tools"].toLowerCase().includes(query))
+    p["Name"] && p["Name"].toLowerCase().includes(query) ||
+    p["Skills"] && p["Skills"].toLowerCase().includes(query) ||
+    p["Tools"] && p["Tools"].toLowerCase().includes(query)
   );
   displayProfiles(filtered.length ? filtered : [], query);
 }
@@ -116,23 +78,20 @@ function displayProfiles(list, query = "") {
     return;
   }
   list.forEach(p => {
-    const div = document.createElement("div");
-    div.className = "profile";
-
-    // Determine Write-Up link
-    let writeUpHtml = "";
-    if (p["Status"] === "Available" && p["Write-up"]) {
-      writeUpHtml = `<a href="https://docs.google.com/forms/d/e/1FAIpQLSc86QPxHxWImOEy0vR7i7WJyNsYYs-8Wk5khc3Th_YsxSHXZw/viewform" target="_blank">
-                        <button>Request Write-Up</button>
-                     </a>`;
-    } else {
-      writeUpHtml = `<a href="mailto:OBPHTraining@officebeacon.com,Hazel.guevarra@officebeacon.com">
-                        <span class="disabled">Request Write-Up</span>
-                     </a>`;
+    const profileVideoBtn = p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank">View Intro Video</a>` : "";
+    let writeUpHTML = "";
+    if(p["Write-up"]) {
+      if(p["Status"] === "Available") {
+        writeUpHTML = `<a href="https://docs.google.com/forms/d/e/1FAIpQLSc86QPxHxWImOEy0vR7i7WJyNsYYs-8Wk5khc3Th_YsxSHXZw/viewform" target="_blank">Request Write-Up</a>`;
+      } else {
+        writeUpHTML = `<span class="disabled">Request Write-Up</span> | <a href="mailto:OBPHTraining@officebeacon.com,Hazel.guevarra@officebeacon.com">Email Training Team</a>`;
+      }
     }
 
+    const div = document.createElement("div");
+    div.className = "profile";
     div.innerHTML = `
-      <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
+      <img src="${p["Photo URL"] || 'https://via.placeholder.com/100'}" alt="${p["Name"] || 'Unnamed'}">
       <div class="profile-details">
         <h3>${p["Name"] || "Unnamed"}</h3>
         <p><b>Role:</b> ${p["Role"] || ""}</p>
@@ -142,8 +101,7 @@ function displayProfiles(list, query = "") {
         <p><b>Experience:</b> ${p["Experience"] || ""}</p>
         <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
         <div class="actions">
-          ${p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank"><button>View Profile Video</button></a>` : ""}
-          ${writeUpHtml}
+          ${profileVideoBtn} | ${writeUpHTML}
         </div>
       </div>
     `;
@@ -153,5 +111,6 @@ function displayProfiles(list, query = "") {
 
 fetchProfiles();
 </script>
+
 </body>
 </html>
