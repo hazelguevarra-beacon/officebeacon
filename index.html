@@ -1,106 +1,131 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Talent Directory</title>
-  <style>
-    body { font-family: Arial; background: #f5f5f5; padding: 30px; }
-    .search-container { margin-bottom: 20px; }
-    input { padding: 10px; width: 250px; }
-    button { padding: 10px; margin-left: 5px; }
-    .profile { background: white; padding: 20px; margin: 10px 0; border-radius: 10px; }
-    .profile img { width: 100px; height: 100px; border-radius: 50%; }
-    .profile h3 { margin: 10px 0 5px; }
-    .download-btn { background: #007bff; color: white; border: none; padding: 8px; cursor: pointer; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talent Directory</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+  header { background: #004aad; color: #fff; padding: 20px; text-align: center; }
+  .container { max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+  button { padding: 10px 16px; background: #004aad; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #003580; }
+  .profile { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; gap: 20px; align-items: center; }
+  .profile img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
+  .profile-details { flex: 1; }
+  .profile-details h3 { margin: 0; color: #004aad; }
+  .skills, .tools { margin: 8px 0; }
+  .actions button { margin-right: 10px; }
+</style>
 </head>
 <body>
+<header>
   <h1>Talent Directory</h1>
-  <div class="search-container">
-    <input type="text" id="searchInput" placeholder="Search by name, skills, or tools..." />
-    <button id="searchBtn">Search</button>
-    <button id="showAllBtn">Show All Profiles</button>
-  </div>
-  <div id="profiles"></div>
+</header>
 
-  <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec";  // Replace with your deployed Apps Script web app URL
-    const EMAIL_API_URL = API_URL;        // Same URL handles POST for email
+<div class="container">
+  <h2>Search Profiles</h2>
+  <input id="searchInput" placeholder="Enter name, skill, or tool...">
+  <button onclick="searchProfiles()">Search</button>
+  <button onclick="showAll()">View All Profiles</button>
 
-    async function fetchProfiles() {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      return data.data;
+  <div id="results"></div>
+</div>
+
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // same URL for GET and POST
+
+let profiles = [];
+
+function fetchProfiles() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      profiles = data.data;
+      showAll();
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("results").innerText = "Error loading profiles.";
+    });
+}
+
+function searchProfiles() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = profiles.filter(p =>
+    p["Name"].toLowerCase().includes(query) ||
+    (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
+    (p["Tools"] && p["Tools"].toLowerCase().includes(query))
+  );
+  displayProfiles(filtered.length ? filtered : [], query);
+}
+
+function showAll() {
+  displayProfiles(profiles);
+}
+
+function displayProfiles(list, query = "") {
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+  if (!list.length) {
+    results.innerHTML = `<p>No match found for "${query}".</p>`;
+    return;
+  }
+  list.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "profile";
+    div.innerHTML = `
+      <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
+      <div class="profile-details">
+        <h3>${p["Name"] || "Unnamed"}</h3>
+        <p><b>Role:</b> ${p["Role"] || ""}</p>
+        <p><b>Status:</b> ${p["Status"] || ""}</p>
+        <p><b>Skills:</b> ${p["Skills"] || ""}</p>
+        <p><b>Tools:</b> ${p["Tools"] || ""}</p>
+        <p><b>Experience:</b> ${p["Experience"] || ""}</p>
+        <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
+        <div class="actions">
+          ${p["Profile Video"] ? `<button onclick="logAndDownload('${p["Name"]}','${p["Profile Video"]}')">Download Intro Video</button>` : ""}
+          ${p["Write-up"] ? `<button onclick="logAndDownload('${p["Name"]}','${p["Write-up"]}')">Download Write-up</button>` : ""}
+        </div>
+      </div>
+    `;
+    results.appendChild(div);
+  });
+}
+
+function logAndDownload(name, url) {
+  const email = prompt("Enter your email address:");
+  const account = prompt("Enter your account name:");
+  const profiling = confirm("Is this for profiling? Click OK for Yes, Cancel for No.") ? "Yes" : "No";
+
+  if (!email || !account) {
+    alert("Email and account are required.");
+    return;
+  }
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, account, profiling })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      window.open(url, "_blank");
+      alert("Logged successfully.");
+    } else {
+      alert("Error logging action: " + res.error);
     }
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error logging action.");
+  });
+}
 
-    function renderProfiles(profiles) {
-      const container = document.getElementById("profiles");
-      container.innerHTML = "";
-
-      if (!profiles.length) {
-        container.innerHTML = "<p>No match found.</p>";
-        return;
-      }
-
-      profiles.forEach(p => {
-        const div = document.createElement("div");
-        div.className = "profile";
-        div.innerHTML = `
-          <img src="${p["Photo URL"]}" alt="${p.Name}">
-          <h3>${p.Name}</h3>
-          <p><b>Role:</b> ${p.Role}</p>
-          <p><b>Status:</b> ${p.Status}</p>
-          <p><b>Skills:</b> ${p.Skills}</p>
-          <p><b>Tools:</b> ${p.Tools}</p>
-          <p><b>Experience:</b> ${p.Experience}</p>
-          <p><b>Courses:</b> <a href="${p.Courses}" target="_blank">View</a></p>
-          <p><b>Profile Video:</b> <a href="${p["Profile Video"]}" target="_blank">Watch</a></p>
-          <button class="download-btn" onclick="downloadWriteup('${p["Write-up"]}', '${p.Name}')">Download Write-up</button>
-        `;
-        container.appendChild(div);
-      });
-    }
-
-    async function downloadWriteup(link, name) {
-      const email = prompt("Enter your email address:");
-      const account = prompt("Enter your account name:");
-      if (!email || !account) return alert("Email and account are required.");
-
-      try {
-        const res = await fetch(EMAIL_API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, account })
-        });
-        const result = await res.json();
-        if (result.success) {
-          alert("Download logged and email sent.");
-          window.open(link, "_blank");
-        } else {
-          alert("Error sending email: " + result.error);
-        }
-      } catch (err) {
-        console.error(err);
-        alert("Error sending email.");
-      }
-    }
-
-    document.getElementById("searchBtn").onclick = async () => {
-      const query = document.getElementById("searchInput").value.toLowerCase();
-      const profiles = await fetchProfiles();
-      const filtered = profiles.filter(p =>
-        p.Name.toLowerCase().includes(query) ||
-        (p.Skills && p.Skills.toLowerCase().includes(query)) ||
-        (p.Tools && p.Tools.toLowerCase().includes(query))
-      );
-      renderProfiles(filtered);
-    };
-
-    document.getElementById("showAllBtn").onclick = async () => {
-      const profiles = await fetchProfiles();
-      renderProfiles(profiles);
-    };
-  </script>
+fetchProfiles();
+</script>
 </body>
 </html>
