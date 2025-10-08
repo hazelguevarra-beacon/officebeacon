@@ -1,241 +1,130 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Talent Directory</title>
-  <style>
-    body {
-      font-family: "Segoe UI", Arial, sans-serif;
-      background: #f9fafc;
-      margin: 0;
-      padding: 0;
-      color: #333;
-    }
-
-    header {
-      background: linear-gradient(90deg, #004aad, #f5c518);
-      color: white;
-      text-align: center;
-      padding: 20px;
-      font-size: 1.5em;
-      font-weight: bold;
-    }
-
-    .container {
-      max-width: 1000px;
-      margin: 30px auto;
-      padding: 20px;
-      background: #fff;
-      border-radius: 12px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-    }
-
-    .search-bar {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    input {
-      padding: 10px;
-      width: 60%;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 1em;
-    }
-
-    button {
-      padding: 10px 16px;
-      border: none;
-      border-radius: 8px;
-      background-color: #004aad;
-      color: white;
-      font-size: 1em;
-      cursor: pointer;
-      transition: 0.3s;
-    }
-
-    button:hover {
-      background-color: #003580;
-    }
-
-    .profile {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-      border: 1px solid #ddd;
-      border-radius: 10px;
-      padding: 15px;
-      margin: 10px 0;
-      background: #fdfdfd;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    .profile img {
-      width: 120px;
-      height: 120px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 2px solid #004aad;
-    }
-
-    .profile-details {
-      flex: 1;
-      padding-left: 15px;
-    }
-
-    .profile-details h3 {
-      margin: 0;
-      color: #004aad;
-    }
-
-    .profile-details p {
-      margin: 4px 0;
-      line-height: 1.4;
-    }
-
-    .profile-details a {
-      color: #004aad;
-      text-decoration: none;
-      font-weight: 600;
-    }
-
-    .profile-details a:hover {
-      text-decoration: underline;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Talent Directory</title>
+<style>
+  body { font-family: Arial, sans-serif; background: #f5f7fa; margin: 0; padding: 0; }
+  header { background: #004aad; color: #fff; padding: 20px; text-align: center; }
+  .container { max-width: 900px; margin: 40px auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+  input { width: 70%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; }
+  button { padding: 10px 16px; background: #004aad; color: white; border: none; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #003580; }
+  .profile { border: 1px solid #ddd; padding: 20px; border-radius: 8px; margin-top: 20px; display: flex; gap: 20px; align-items: center; }
+  .profile img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
+  .profile-details { flex: 1; }
+  .profile-details h3 { margin: 0; color: #004aad; }
+  .skills, .tools { margin: 8px 0; }
+  .actions button { margin-right: 10px; }
+</style>
 </head>
 <body>
+<header>
+  <h1>Talent Directory</h1>
+</header>
 
-  <header>💼 Talent Directory Portal</header>
+<div class="container">
+  <h2>Search Profiles</h2>
+  <input id="searchInput" placeholder="Enter name, skill, or tool...">
+  <button onclick="searchProfiles()">Search</button>
+  <button onclick="showAll()">View All Profiles</button>
 
-  <div class="container">
-    <div class="search-bar">
-      <input type="text" id="searchInput" placeholder="Search by name, skill, or tool...">
-      <button onclick="searchProfiles()">Search</button>
-      <button onclick="showAll()">Show All Profiles</button>
-    </div>
+  <div id="results"></div>
+</div>
 
-    <div id="profiles"></div>
-  </div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbybu1QSuq6w_cQNH4BVroDSxG1Ty6LGefcajBKpU3y3gk_ai-EAHOBDTjcDdJJGsxWQiQ/exec"; // same URL for GET and POST
 
-  <script>
-    // === CONFIGURATION ===
-    const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec"; // <-- Google Apps Script for Sheet data
-    const EMAIL_API_URL = "https://script.google.com/macros/s/AKfycbybu1QSuq6w_cQNH4BVroDSxG1Ty6LGefcajBKpU3y3gk_ai-EAHOBDTjcDdJJGsxWQiQ/exec"; // <-- Google Apps Script for Email log
+let profiles = [];
 
-    let allProfiles = [];
+function fetchProfiles() {
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(data => {
+      profiles = data.data;
+      showAll();
+    })
+    .catch(err => {
+      console.error(err);
+      document.getElementById("results").innerText = "Error loading profiles.";
+    });
+}
 
-    // === FETCH DATA ===
-    async function fetchProfiles() {
-      const res = await fetch(API_URL);
-      const data = await res.json();
-      allProfiles = data.data || [];
+function searchProfiles() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = profiles.filter(p =>
+    p["Name"].toLowerCase().includes(query) ||
+    (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
+    (p["Tools"] && p["Tools"].toLowerCase().includes(query))
+  );
+  displayProfiles(filtered.length ? filtered : [], query);
+}
+
+function showAll() {
+  displayProfiles(profiles);
+}
+
+function displayProfiles(list, query = "") {
+  const results = document.getElementById("results");
+  results.innerHTML = "";
+  if (!list.length) {
+    results.innerHTML = `<p>No match found for "${query}".</p>`;
+    return;
+  }
+  list.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "profile";
+    div.innerHTML = `
+      <img src="${p["Photo URL"] || "https://via.placeholder.com/100"}" alt="${p["Name"]}">
+      <div class="profile-details">
+        <h3>${p["Name"] || "Unnamed"}</h3>
+        <p><b>Role:</b> ${p["Role"] || ""}</p>
+        <p><b>Status:</b> ${p["Status"] || ""}</p>
+        <p><b>Skills:</b> ${p["Skills"] || ""}</p>
+        <p><b>Tools:</b> ${p["Tools"] || ""}</p>
+        <p><b>Experience:</b> ${p["Experience"] || ""}</p>
+        <p><a href="${p["Courses"]}" target="_blank">Courses</a></p>
+        <div class="actions">
+          ${p["Profile Video"] ? `<button onclick="downloadWithEmail('${p["Name"]}','${p["Profile Video"]}')">Download Intro Video</button>` : ""}
+          ${p["Write-up"] ? `<button onclick="downloadWithEmail('${p["Name"]}','${p["Write-up"]}')">Download Write-up</button>` : ""}
+        </div>
+      </div>
+    `;
+    results.appendChild(div);
+  });
+}
+
+function downloadWithEmail(name, url) {
+  const email = prompt("Enter your email address:");
+  const account = prompt("Enter your account name:");
+  if (!email || !account) {
+    alert("Both email and account are required.");
+    return;
+  }
+
+  fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, account })
+  })
+  .then(r => r.json())
+  .then(res => {
+    if (res.success) {
+      window.open(url, "_blank");
+      alert("Download logged and email sent.");
+    } else {
+      alert("Error sending email.");
     }
+  })
+  .catch(err => {
+    console.error(err);
+    alert("Error sending email.");
+  });
+}
 
-    // === SEARCH FUNCTION ===
-    async function searchProfiles() {
-      const query = document.getElementById("searchInput").value.trim().toLowerCase();
-      if (!query) {
-        alert("Please enter a name, skill, or tool.");
-        return;
-      }
-
-      const results = allProfiles.filter(p =>
-        (p["Name"] && p["Name"].toLowerCase().includes(query)) ||
-        (p["Skills"] && p["Skills"].toLowerCase().includes(query)) ||
-        (p["Tools"] && p["Tools"].toLowerCase().includes(query))
-      );
-
-      displayProfiles(results.length ? results : []);
-    }
-
-    // === SHOW ALL ===
-    function showAll() {
-      displayProfiles(allProfiles);
-    }
-
-    // === DISPLAY PROFILES ===
-    function displayProfiles(profiles) {
-      const container = document.getElementById("profiles");
-      container.innerHTML = "";
-
-      if (!profiles.length) {
-        container.innerHTML = "<p>No matching profiles found.</p>";
-        return;
-      }
-
-      profiles.forEach(p => {
-        const photo = p["Photo URL"] || "https://via.placeholder.com/120";
-        const name = p["Name"] || "N/A";
-        const role = p["Role"] || "";
-        const status = p["Status"] || "";
-        const skills = p["Skills"] || "";
-        const tools = p["Tools"] || "";
-        const exp = p["Experience"] || "";
-        const courses = p["Courses"] ? `<a href="${p["Courses"]}" target="_blank">View Courses</a>` : "N/A";
-        const video = p["Profile Video"] ? `<a href="${p["Profile Video"]}" target="_blank">Watch Intro</a>` : "N/A";
-        const writeup = p["Write-up"] ? `<button onclick="downloadWriteup('${name}', '${p["Write-up"]}')">Download Write-up</button>` : "N/A";
-
-        container.innerHTML += `
-          <div class="profile">
-            <img src="${photo}" alt="${name}">
-            <div class="profile-details">
-              <h3>${name}</h3>
-              <p><strong>Role:</strong> ${role}</p>
-              <p><strong>Status:</strong> ${status}</p>
-              <p><strong>Skills:</strong> ${skills}</p>
-              <p><strong>Tools:</strong> ${tools}</p>
-              <p><strong>Experience:</strong> ${exp}</p>
-              <p><strong>Courses:</strong> ${courses}</p>
-              <p><strong>Profile Video:</strong> ${video}</p>
-              <p>${writeup}</p>
-            </div>
-          </div>
-        `;
-      });
-    }
-
-    // === DOWNLOAD WRITE-UP + EMAIL LOG ===
-    function downloadWriteup(name, fileUrl) {
-      const email = prompt("Enter your email address:");
-      const account = prompt("Enter your account name:");
-
-      if (!email || !account) {
-        alert("Both fields are required.");
-        return;
-      }
-
-      sendEmailLog(name, email, account);
-      window.open(fileUrl, "_blank");
-    }
-
-    // === SEND EMAIL LOG ===
-    function sendEmailLog(name, email, account) {
-      fetch(EMAIL_API_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, account })
-      })
-      .then(res => res.json())
-      .then(result => {
-        if (result.success) {
-          console.log("Email log sent successfully.");
-        } else {
-          console.error("Email send error:", result.error);
-          alert("Error sending email: " + result.error);
-        }
-      })
-      .catch(err => {
-        console.error("Fetch error:", err);
-        alert("Error sending email.");
-      });
-    }
-
-    // Load all profiles on start
-    fetchProfiles();
-  </script>
+// Load profiles on page start
+fetchProfiles();
+</script>
 </body>
 </html>
