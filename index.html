@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Team Profiles</title>
+<style>
+body { font-family: Arial; margin: 20px; }
+input { padding: 10px; width: 250px; margin-right: 10px; }
+button { padding: 10px 15px; margin-right:5px; cursor:pointer; }
+.profile-card { border:1px solid #ccc; padding:15px; margin:15px 0; border-radius:8px; display:flex; gap:15px; flex-wrap:wrap; }
+.profile-card img { width:100px; height:100px; object-fit:cover; border-radius:8px; }
+.profile-info { flex:1; min-width:250px; }
+a { color:blue; text-decoration:underline; }
+</style>
+</head>
+<body>
+<h2>Team Profiles</h2>
+<input type="text" id="searchInput" placeholder="Search Name or Skills">
+<button onclick="searchProfiles()">Search</button>
+<button onclick="showAll()">Show All</button>
+<div id="profileList"></div>
+
+<script>
+// ================================
+// Replace these URLs with your deployed Apps Script URLs
+// ================================
+const API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec";    // Google Sheet JSON web app
+const EMAIL_API_URL = "https://script.google.com/macros/s/AKfycbyYHr23yFW26GokRPSo3WC9WehxMaKicEg7pzaLQLyMdbEXzsuVEvF3CLyPoVvyH_ZWjg/exec";  // Email sending web app
+
+let profiles = [];
+
+// Fetch all profiles from your sheet
+fetch(API_URL)
+  .then(res => res.json())
+  .then(data => { 
+    profiles = data.data; 
+    showAll(); 
+  })
+  .catch(err => console.error("Error fetching data:", err));
+
+// ================================
+// Search & Show All
+// ================================
+function searchProfiles() {
+  const query = document.getElementById("searchInput").value.toLowerCase();
+  const filtered = profiles.filter(p =>
+    (p.Name && p.Name.toLowerCase().includes(query)) ||
+    (p.Skills && p.Skills.toLowerCase().includes(query))
+  );
+  renderProfiles(filtered);
+}
+
+function showAll() {
+  renderProfiles(profiles);
+}
+
+// ================================
+// Render profile cards
+// ================================
+function renderProfiles(list) {
+  const container = document.getElementById("profileList");
+  container.innerHTML = "";
+  if(list.length===0) { container.innerHTML="<p>No profiles found.</p>"; return; }
+
+  list.forEach(p => {
+    const div = document.createElement("div");
+    div.className = "profile-card";
+    div.innerHTML = `
+      <img src="${p['Photo URL']}" alt="${p.Name}">
+      <div class="profile-info">
+        <p><strong>Employee ID:</strong> ${p['Employee ID']}</p>
+        <p><strong>Name:</strong> ${p.Name}</p>
+        <p><strong>Role:</strong> ${p.Role}</p>
+        <p><strong>Status:</strong> ${p.Status}</p>
+        <p><strong>Skills:</strong> ${p.Skills}</p>
+        <p><strong>Tools:</strong> ${p.Tools}</p>
+        <p><strong>Experience:</strong> ${p.Experience}</p>
+        <p><strong>Courses:</strong> <a href="${p.Courses}" target="_blank">View Course</a></p>
+        <p><strong>Profile Video:</strong> <a href="${p['Profile Video']}" target="_blank">Watch</a></p>
+        <p><strong>Write-up:</strong> <button onclick="downloadWriteup('${p['Write-up']}', '${p.Name}')">Download</button></p>
+      </div>
+    `;
+    container.appendChild(div);
+  });
+}
+
+// ================================
+// Download write-up + send email
+// ================================
+function downloadWriteup(writeupLink, name) {
+  const email = prompt("Enter your email address:");
+  if (!email) return alert("Email required.");
+  
+  const account = prompt("Enter your account:");
+  if (!account) return alert("Account required.");
+
+  // Open the write-up in a new tab
+  window.open(writeupLink, "_blank");
+
+  // Send email notification
+  fetch(EMAIL_API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, account })
+  })
+  .then(() => alert("Download logged and email sent."))
+  .catch(err => {
+    console.error(err); 
+    alert("Error sending email.");
+  });
+}
+</script>
+</body>
+</html>
